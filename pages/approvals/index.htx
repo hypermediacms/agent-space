@@ -1,0 +1,31 @@
+<section style="max-width:800px;margin:2rem auto;padding:0 1.5rem">
+  <h1 style="margin-bottom:1.5rem">Approvals</h1>
+
+  <h2 style="font-size:1rem;margin-bottom:0.75rem">Pending Escalations</h2>
+  <htx:data type="escalation" where="status = 'pending'" order="created_at ASC" as="pendingEscalations" />
+  <div style="display:grid;gap:0.75rem;margin-bottom:2rem">
+    <htx:each items="pendingEscalations" as="e">
+      <div class="ui-card" style="border-left:3px solid #f59e0b">
+        <div class="ui-card-body">
+          <h3 class="ui-card-title" style="font-size:0.9rem">Escalation from {htx:e.agent_slug}</h3>
+          <p class="ui-card-description" style="font-size:0.8rem">{htx:e.context}</p>
+          <p style="font-size:0.75rem;color:var(--ui-text-muted);margin-top:0.25rem">Recommendation: {htx:e.recommendation}</p>
+        </div>
+      </div>
+    </htx:each>
+  </div>
+
+  <h2 style="font-size:1rem;margin-bottom:0.75rem">Pending Mutation Proposals</h2>
+  <htx:data type="mutation_proposal" where="status = 'pending'" order="created_at ASC" as="pendingProposals" />
+  <div style="display:grid;gap:0.75rem">
+    <htx:each items="pendingProposals" as="p">
+      <div class="ui-card" style="border-left:3px solid #ef4444">
+        <div class="ui-card-body">
+          <h3 class="ui-card-title" style="font-size:0.9rem">{htx:p.change_type}: {htx:p.resource}</h3>
+          <p class="ui-card-description" style="font-size:0.8rem">{htx:p.change_detail}</p>
+          <p style="font-size:0.75rem;color:var(--ui-text-muted);margin-top:0.25rem">{htx:p.agent_slug} &middot; {htx:p.rationale}</p>
+        </div>
+      </div>
+    </htx:each>
+  </div>
+</section>
