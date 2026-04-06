@@ -17,6 +17,8 @@ import { createAgentIdentityModule } from "./src/identity/module";
 import { AGENT_DDL, PERSONA_DDL, SEED_PERSONA, SEED_AGENT } from "./src/identity/schema";
 import { createDelegationModule } from "./src/delegation/module";
 import { DELEGATION_DDL } from "./src/delegation/schema";
+import { createMemoryModule } from "./src/memory/module";
+import { MEMORY_DDL } from "./src/memory/schema";
 
 const PORT = parseInt(process.env.PORT || "4050");
 const SECRET = process.env.SECRET || "agent-space-secret-key";
@@ -34,6 +36,7 @@ adapter.exec(PERSONA_DDL);
 adapter.exec(SEED_PERSONA);
 adapter.exec(SEED_AGENT);
 adapter.exec(DELEGATION_DDL);
+adapter.exec(MEMORY_DDL);
 
 // --- Engine ---
 const engine = new PrestoEngine({
@@ -50,6 +53,7 @@ const engine = new PrestoEngine({
     createHealthModule({ path: "/healthz" }),
     createAgentIdentityModule(adapter),
     createDelegationModule(adapter),
+    createMemoryModule(adapter),
   ],
 });
 

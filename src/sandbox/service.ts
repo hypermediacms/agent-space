@@ -5,6 +5,7 @@
 import { ConcurrencySemaphore } from "./semaphore";
 import { DelegationService } from "../delegation/service";
 import { AgentIdentityService } from "../identity/service";
+import { MemoryService } from "../memory/service";
 import type { SqliteAdapter } from "../../../presto-ts/src/adapters/sqlite";
 import type { Delegation } from "../delegation/types";
 
@@ -21,12 +22,14 @@ export class SandboxService {
   private semaphore: ConcurrencySemaphore;
   private delegationService: DelegationService;
   private identityService: AgentIdentityService;
+  private memoryService: MemoryService;
   private apiKey: string;
 
   constructor(private db: SqliteAdapter, config: SandboxConfig = {}) {
     this.semaphore = new ConcurrencySemaphore(config.maxConcurrent || 3);
     this.delegationService = new DelegationService(db);
     this.identityService = new AgentIdentityService(db);
+    this.memoryService = new MemoryService(db);
     this.apiKey = config.anthropicApiKey || process.env.ANTHROPIC_API_KEY || "";
   }
 
@@ -54,7 +57,11 @@ export class SandboxService {
         "Use the escalation protocol for ambiguous or high-impact choices.",
       ].join("\n");
 
-      const systemPrompt = [identityContext, "", authorityDeclaration].join("\n");
+      // C5: Inject bounded memory context
+      const memories = this.memoryService.retrieve(delegation.agent_slug, 5);
+      const memoryContext = this.memoryService.formatForContext(memories);
+
+      const systemPrompt = [identityContext, "", authorityDeclaration, "", memoryContext].join("\n");
 
       // C2: Temporal bound — race execution against timeout
       const timeoutMs = delegation.timeout_seconds * 1000;

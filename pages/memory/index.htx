@@ -1,0 +1,20 @@
+<section style="max-width:800px;margin:2rem auto;padding:0 1.5rem">
+  <h1 style="margin-bottom:1.5rem">Memory</h1>
+
+  <htx:data type="memory" order="created_at DESC" limit="20" as="memoryList" />
+
+  <div style="display:grid;gap:0.75rem">
+    <htx:each items="memoryList" as="m">
+      <div class="ui-card">
+        <div class="ui-card-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem">
+            <h3 class="ui-card-title" style="font-size:0.9rem">{htx:m.title}</h3>
+            <span class="ui-badge" style="font-size:0.65rem;text-transform:uppercase">{htx:m.importance}</span>
+          </div>
+          <p class="ui-card-description" style="font-size:0.8rem">{htx:m.body}</p>
+          <p style="font-size:0.7rem;color:var(--ui-text-muted);margin-top:0.25rem">{htx:m.agent_slug} &middot; {htx:m.memory_type} &middot; {htx:m.created_at}</p>
+        </div>
+      </div>
+    </htx:each>
+  </div>
+</section>
