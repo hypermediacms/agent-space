@@ -1,0 +1,20 @@
+<section style="max-width:800px;margin:2rem auto;padding:0 1.5rem">
+  <h1 style="margin-bottom:1.5rem">Delegations</h1>
+
+  <htx:data type="delegation" order="created_at DESC" limit="20" as="delegationList" />
+
+  <div style="display:grid;gap:0.75rem">
+    <htx:each items="delegationList" as="d">
+      <div class="ui-card">
+        <div class="ui-card-body" style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <h3 class="ui-card-title" style="font-size:0.9rem">{htx:d.agent_slug}</h3>
+            <p class="ui-card-description" style="font-size:0.8rem">{htx:d.task}</p>
+            <p style="font-size:0.7rem;color:var(--ui-text-muted);margin-top:0.25rem">by {htx:d.delegator_id} &middot; {htx:d.created_at}</p>
+          </div>
+          <span class="ui-badge" style="text-transform:uppercase;font-size:0.65rem">{htx:d.status}</span>
+        </div>
+      </div>
+    </htx:each>
+  </div>
+</section>
