@@ -20,13 +20,13 @@ Build Agent Space as a presto-ts application — a second conformant implementat
 
 | Phase | Constraints | Properties | Status |
 |-------|-------------|------------|--------|
-| 1 | (scaffold) | -- | NOT STARTED |
-| 2 | C1: Agent Identity | P3, P5 | NOT STARTED |
-| 3 | C2+C3: Sandbox + Delegation | P1, P2, P4 | NOT STARTED |
-| 4 | C5: Bounded Memory | P3, P2, P6 | NOT STARTED |
-| 5 | C4: Human Authority | P1, P2, P6 | NOT STARTED |
-| 6 | C6: Attestation | P5, P1 | NOT STARTED |
-| 7 | C7: Multi-Agent Protocol | P2, P6 | NOT STARTED |
+| 1 | (scaffold) | -- | COMPLETE |
+| 2 | C1: Agent Identity | P3, P5 | COMPLETE |
+| 3 | C2+C3: Sandbox + Delegation | P1, P2, P4 | COMPLETE |
+| 4 | C5: Bounded Memory | P3, P2, P6 | COMPLETE |
+| 5 | C4: Human Authority | P1, P2, P6 | COMPLETE |
+| 6 | C6: Attestation | P5, P1 | COMPLETE |
+| 7 | C7: Multi-Agent Protocol | P2, P6 | COMPLETE |
 | 8 | (verification) | P1-P6 | NOT STARTED |
 
 ---
@@ -146,4 +146,11 @@ Build Agent Space as a presto-ts application — a second conformant implementat
 
 ## Execution Log
 
-_(Updated as phases complete)_
+- [x] Phase 1: Scaffold — running on :4050, healthz, layout, dashboard (2026-04-06)
+- [x] Phase 2: Agent Identity (C1) — AgentIdentityService, personas, seed agent, template page (2026-04-06)
+- [x] Phase 3: Sandbox + Delegation (C2, C3) — DelegationService, SandboxService, semaphore, state machine (2026-04-06)
+- [x] Phase 4: Bounded Memory (C5) — MemoryService, importance hierarchy, decay, capacity limit, prompt injection (2026-04-06)
+- [x] Phase 5: Human Authority (C4) — EscalationService, MutationApprovalService with action tokens, authority injection (2026-04-06)
+- [x] Phase 6: Attestation (C6) — MerkleTree, Ed25519 Signer, core checksum, JSON-in-body storage (2026-04-06)
+- [x] Phase 7: Coordination (C7) — CoordinationService, sequential turns, shared transcript, human checkpoints (2026-04-06)
+- [ ] Phase 8: Verification suite — pending
