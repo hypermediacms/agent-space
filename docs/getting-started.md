@@ -9,7 +9,7 @@ This guide walks through setting up Agent Space, creating your first agent, dele
 Agent Space depends on presto-ts as a sibling directory:
 
 ```bash
-git clone https://github.com/hypermediacms/presto-engine.git presto-ts
+git clone https://github.com/hypermediacms/presto-ts.git presto-ts
 git clone https://github.com/hypermediacms/agent-space.git agent-space
 ```
 

@@ -13,7 +13,7 @@ This is the **second conformant implementation** of the essential constraints â€
 ### Prerequisites
 
 - [Bun](https://bun.sh/) runtime (v1.0+)
-- [presto-ts](https://github.com/hypermediacms/presto-engine) cloned as a sibling directory
+- [presto-ts](https://github.com/hypermediacms/presto-ts) cloned as a sibling directory
 
 ```
 parent/
