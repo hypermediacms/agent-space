@@ -13,6 +13,7 @@ import {
   createHealthModule,
 } from "../presto-ts/modules/index";
 import { join } from "node:path";
+import { mkdirSync } from "node:fs";
 import { createAgentIdentityModule } from "./src/identity/module";
 import { AGENT_DDL, PERSONA_DDL, SEED_PERSONA, SEED_AGENT } from "./src/identity/schema";
 import { createDelegationModule } from "./src/delegation/module";
@@ -21,6 +22,7 @@ import { createMemoryModule } from "./src/memory/module";
 import { MEMORY_DDL } from "./src/memory/schema";
 import { createAuthorityModule } from "./src/authority/module";
 import { ESCALATION_DDL, MUTATION_PROPOSAL_DDL } from "./src/authority/schema";
+import { createAttestationModule } from "./src/attestation/module";
 
 const PORT = parseInt(process.env.PORT || "4050");
 const SECRET = process.env.SECRET || "agent-space-secret-key";
@@ -30,6 +32,7 @@ const PUBLIC = join(ROOT, "public");
 const DB = join(ROOT, "data/agent-space.db");
 
 // --- Database ---
+mkdirSync(join(ROOT, "data"), { recursive: true });
 const adapter = new SqliteAdapter(DB);
 
 // Schema initialization
@@ -41,6 +44,7 @@ adapter.exec(DELEGATION_DDL);
 adapter.exec(MEMORY_DDL);
 adapter.exec(ESCALATION_DDL);
 adapter.exec(MUTATION_PROPOSAL_DDL);
+// Attestation uses adapter's default schema (body=JSON) — no custom DDL needed
 
 // --- Engine ---
 const engine = new PrestoEngine({
@@ -59,6 +63,7 @@ const engine = new PrestoEngine({
     createDelegationModule(adapter),
     createMemoryModule(adapter),
     createAuthorityModule(adapter, SECRET),
+    createAttestationModule(adapter, join(ROOT, "keys")),
   ],
 });
 

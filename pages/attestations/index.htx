@@ -1,0 +1,19 @@
+<section style="max-width:800px;margin:2rem auto;padding:0 1.5rem">
+  <h1 style="margin-bottom:1.5rem">Attestations</h1>
+
+  <htx:data type="attestation" order="id DESC" limit="10" as="attestationList" />
+
+  <div style="display:grid;gap:0.75rem">
+    <htx:each items="attestationList" as="a">
+      <div class="ui-card">
+        <div class="ui-card-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem">
+            <h3 class="ui-card-title" style="font-size:0.9rem">{htx:a.title}</h3>
+            <span class="ui-badge" style="font-size:0.65rem">{htx:a.status}</span>
+          </div>
+          <p style="font-size:0.7rem;color:var(--ui-text-muted)">{htx:a.created_at}</p>
+        </div>
+      </div>
+    </htx:each>
+  </div>
+</section>
