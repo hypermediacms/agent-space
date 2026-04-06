@@ -1,0 +1,43 @@
+<section style="max-width:800px;margin:2rem auto;padding:0 1.5rem">
+  <h1>Agent Space</h1>
+  <p style="color:var(--ui-text-muted);margin-bottom:2rem">Human-agent coordination — 7 constraints, 6 induced properties.</p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem">
+    <a href="/agents" class="ui-card" style="text-decoration:none;color:inherit">
+      <div class="ui-card-body">
+        <h3 class="ui-card-title">Agents</h3>
+        <p class="ui-card-description">Identity, personas, capabilities</p>
+      </div>
+    </a>
+    <a href="/delegations" class="ui-card" style="text-decoration:none;color:inherit">
+      <div class="ui-card-body">
+        <h3 class="ui-card-title">Delegations</h3>
+        <p class="ui-card-description">Task assignment and execution</p>
+      </div>
+    </a>
+    <a href="/memory" class="ui-card" style="text-decoration:none;color:inherit">
+      <div class="ui-card-body">
+        <h3 class="ui-card-title">Memory</h3>
+        <p class="ui-card-description">Persistent recall with decay</p>
+      </div>
+    </a>
+    <a href="/approvals" class="ui-card" style="text-decoration:none;color:inherit">
+      <div class="ui-card-body">
+        <h3 class="ui-card-title">Approvals</h3>
+        <p class="ui-card-description">Human authority over mutations</p>
+      </div>
+    </a>
+    <a href="/attestations" class="ui-card" style="text-decoration:none;color:inherit">
+      <div class="ui-card-body">
+        <h3 class="ui-card-title">Attestations</h3>
+        <p class="ui-card-description">Cryptographic state verification</p>
+      </div>
+    </a>
+    <a href="/conversations" class="ui-card" style="text-decoration:none;color:inherit">
+      <div class="ui-card-body">
+        <h3 class="ui-card-title">Conversations</h3>
+        <p class="ui-card-description">Multi-agent coordination</p>
+      </div>
+    </a>
+  </div>
+</section>
