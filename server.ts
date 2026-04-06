@@ -1,5 +1,6 @@
 // Agent Space — Human-Agent Coordination Server
 // Built on presto-ts. Derived from essential constraints.
+// Auth: stateless signed tokens, no cookies, no sessions.
 
 import { PrestoEngine } from "../presto-ts/src/engine";
 import { SqliteAdapter } from "../presto-ts/src/adapters/sqlite";
@@ -23,6 +24,8 @@ import { createAuthorityModule } from "./src/authority/module";
 import { ESCALATION_DDL, MUTATION_PROPOSAL_DDL } from "./src/authority/schema";
 import { createAttestationModule } from "./src/attestation/module";
 import { createCoordinationModule } from "./src/coordination/module";
+import { createTokenAuthModule } from "./src/auth/module";
+import { TokenAuthService } from "./src/auth/token-auth";
 
 const PORT = parseInt(process.env.PORT || "4050");
 const SECRET = process.env.SECRET || "agent-space-secret-key";
@@ -41,10 +44,11 @@ adapter.exec(PERSONA_DDL);
 adapter.exec(SEED_PERSONA);
 adapter.exec(SEED_AGENT);
 adapter.exec(DELEGATION_DDL);
-// Memory uses adapter's default schema (body=JSON) — no custom DDL needed
 adapter.exec(ESCALATION_DDL);
 adapter.exec(MUTATION_PROPOSAL_DDL);
-// Attestation uses adapter's default schema (body=JSON) — no custom DDL needed
+
+// --- Auth service (for login endpoint) ---
+const authService = new TokenAuthService(SECRET);
 
 // --- Engine ---
 const engine = new PrestoEngine({
@@ -59,6 +63,7 @@ const engine = new PrestoEngine({
     createCorsModule({ origins: ["*"] }),
     createSecurityModule({ hsts: false }),
     createHealthModule({ path: "/healthz" }),
+    createTokenAuthModule(SECRET),
     createAgentIdentityModule(adapter),
     createDelegationModule(adapter),
     createMemoryModule(adapter),
@@ -105,6 +110,27 @@ Bun.serve({
   port: PORT,
   hostname: "0.0.0.0",
   async fetch(req) {
+    const url = new URL(req.url);
+
+    // Login POST — handle outside engine (needs async token signing)
+    if (url.pathname === "/api/login" && req.method === "POST") {
+      try {
+        const body = await req.json() as { username?: string; password?: string };
+        // Simple auth — in production, check against user table with bcrypt
+        if (body.username === "admin" && body.password === "presto") {
+          const token = await authService.issueToken({
+            userId: "admin",
+            username: "admin",
+            role: "admin",
+          });
+          return Response.json({ success: true, token });
+        }
+        return Response.json({ error: "Invalid credentials" }, { status: 401 });
+      } catch {
+        return Response.json({ error: "Bad request" }, { status: 400 });
+      }
+    }
+
     const htxReq = await parseRequest(req);
     const resp = await engine.handle(htxReq);
     return new Response(resp.body, {
@@ -114,7 +140,14 @@ Bun.serve({
   },
 });
 
+// --- API key status ---
+if (process.env.ANTHROPIC_API_KEY) console.log("  LLM execution: enabled");
+else console.log("  LLM execution: disabled (set ANTHROPIC_API_KEY to enable)");
+
 console.log(`
   Agent Space
   http://0.0.0.0:${PORT}
+  Auth: stateless tokens (no cookies)
+  Login: POST /api/login { username, password } → { token }
+  Access: ?_t=<token> on any URL
 `);

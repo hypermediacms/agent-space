@@ -10,15 +10,18 @@
 </head>
 <body class="as-body">
   <nav class="as-nav">
-    <a href="/" class="as-nav-brand">Agent Space</a>
+    <a href="/?_t={htx:authToken}" class="as-nav-brand">Agent Space</a>
     <div class="as-nav-links">
-      <a href="/agents">Agents</a>
-      <a href="/delegations">Delegations</a>
-      <a href="/memory">Memory</a>
-      <a href="/approvals">Approvals</a>
-      <a href="/attestations">Attestations</a>
-      <a href="/conversations">Conversations</a>
+      <a href="/agents?_t={htx:authToken}">Agents</a>
+      <a href="/delegations?_t={htx:authToken}">Delegations</a>
+      <a href="/memory?_t={htx:authToken}">Memory</a>
+      <a href="/approvals?_t={htx:authToken}">Approvals</a>
+      <a href="/attestations?_t={htx:authToken}">Attestations</a>
+      <a href="/conversations?_t={htx:authToken}">Conversations</a>
     </div>
+    <htx:auth>
+      <span style="font-size:0.75rem;color:var(--ui-text-muted)">{htx:authUser.name} ({htx:authUser.role})</span>
+    </htx:auth>
   </nav>
   <main class="as-main">
     __content__

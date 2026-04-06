@@ -1,0 +1,68 @@
+<htx:layout none />
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Space — Login</title>
+  <link rel="stylesheet" href="/css/presto-ui.css">
+  <link rel="stylesheet" href="/css/agent-space.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+</head>
+<body class="as-body" style="display:flex;align-items:center;justify-content:center;min-height:100vh">
+  <div style="width:100%;max-width:360px;padding:2rem">
+    <h1 style="font-size:1.5rem;margin-bottom:0.5rem">Agent Space</h1>
+    <p style="color:var(--ui-text-muted);font-size:0.85rem;margin-bottom:1.5rem">Sign in to continue.</p>
+
+    <div id="login-error" style="display:none;color:#ef4444;font-size:0.8rem;margin-bottom:1rem"></div>
+
+    <form id="login-form" onsubmit="return handleLogin(event)">
+      <div style="margin-bottom:1rem">
+        <label style="display:block;font-size:0.8rem;font-weight:500;margin-bottom:0.25rem">Username</label>
+        <input type="text" name="username" required autofocus
+          style="width:100%;padding:0.5rem;border:1px solid var(--ui-border);border-radius:var(--ui-radius,4px);font-size:0.9rem" />
+      </div>
+      <div style="margin-bottom:1.5rem">
+        <label style="display:block;font-size:0.8rem;font-weight:500;margin-bottom:0.25rem">Password</label>
+        <input type="password" name="password" required
+          style="width:100%;padding:0.5rem;border:1px solid var(--ui-border);border-radius:var(--ui-radius,4px);font-size:0.9rem" />
+      </div>
+      <button type="submit"
+        style="width:100%;padding:0.6rem;background:var(--ui-primary,#6366f1);color:#fff;border:none;border-radius:var(--ui-radius,4px);font-size:0.9rem;cursor:pointer;font-weight:500">
+        Sign In
+      </button>
+    </form>
+  </div>
+
+  <script>
+    async function handleLogin(e) {
+      e.preventDefault();
+      var form = e.target;
+      var username = form.username.value;
+      var password = form.password.value;
+      var errEl = document.getElementById("login-error");
+
+      try {
+        var resp = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: username, password: password }),
+        });
+        var data = await resp.json();
+
+        if (data.success && data.token) {
+          // Redirect with the signed token in the URL — no cookies set.
+          // The representation will carry the token forward in every link.
+          window.location.href = "/?_t=" + encodeURIComponent(data.token);
+        } else {
+          errEl.textContent = data.error || "Login failed";
+          errEl.style.display = "block";
+        }
+      } catch (err) {
+        errEl.textContent = "Connection error";
+        errEl.style.display = "block";
+      }
+    }
+  </script>
+</body>
+</html>
