@@ -19,7 +19,6 @@ import { AGENT_DDL, PERSONA_DDL, SEED_PERSONA, SEED_AGENT } from "./src/identity
 import { createDelegationModule } from "./src/delegation/module";
 import { DELEGATION_DDL } from "./src/delegation/schema";
 import { createMemoryModule } from "./src/memory/module";
-import { MEMORY_DDL } from "./src/memory/schema";
 import { createAuthorityModule } from "./src/authority/module";
 import { ESCALATION_DDL, MUTATION_PROPOSAL_DDL } from "./src/authority/schema";
 import { createAttestationModule } from "./src/attestation/module";
@@ -42,7 +41,7 @@ adapter.exec(PERSONA_DDL);
 adapter.exec(SEED_PERSONA);
 adapter.exec(SEED_AGENT);
 adapter.exec(DELEGATION_DDL);
-adapter.exec(MEMORY_DDL);
+// Memory uses adapter's default schema (body=JSON) — no custom DDL needed
 adapter.exec(ESCALATION_DDL);
 adapter.exec(MUTATION_PROPOSAL_DDL);
 // Attestation uses adapter's default schema (body=JSON) — no custom DDL needed

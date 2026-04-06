@@ -1,15 +1,19 @@
 // C5 — Bounded Memory Service
 // Importance hierarchy, decay, capacity limits.
-// Critical: no decay. High: 365d. Medium: 90d. Low: 30d.
+// Uses adapter's default schema: slug, title, body (JSON), status, created_at.
 
 import type { SqliteAdapter } from "../../../presto-ts/src/adapters/sqlite";
 import type { Memory, MemoryImportance, MemoryType } from "./types";
 
 const DECAY_DAYS: Record<MemoryImportance, number | null> = {
-  critical: null,  // never decays
+  critical: null,
   high: 365,
   medium: 90,
   low: 30,
+};
+
+const IMPORTANCE_RANK: Record<MemoryImportance, number> = {
+  critical: 0, high: 1, medium: 2, low: 3,
 };
 
 export class MemoryService {
@@ -28,61 +32,60 @@ export class MemoryService {
       : null;
 
     const record = this.db.create("memory", {
-      agent_slug: agentSlug,
+      slug: `${agentSlug}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       title,
-      body,
-      memory_type: type,
-      importance,
-      decay_at: decayAt,
+      body: JSON.stringify({
+        agent_slug: agentSlug,
+        content: body,
+        memory_type: type,
+        importance,
+        last_accessed_at: new Date().toISOString(),
+        decay_at: decayAt,
+      }),
+      status: importance,
     });
 
-    return this.rowToMemory(record);
+    return this.recordToMemory(record);
   }
 
   retrieve(agentSlug: string, limit = 5): Memory[] {
-    // Priority cascade: critical first, then high, then by recency
-    // This is the structural capacity bound — at most `limit` entries returned
-    const all = this.db.query({
-      type: "memory",
-      where: `agent_slug = '${agentSlug}' AND (decay_at IS NULL OR decay_at > datetime('now'))`,
-      order: `CASE importance WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 WHEN 'low' THEN 3 END, last_accessed_at DESC`,
-      limit,
-    }).map(r => this.rowToMemory(r));
+    const all = this.db.query({ type: "memory", order: "id DESC", limit: 100 })
+      .map(r => this.recordToMemory(r))
+      .filter(m => m.agent_slug === agentSlug)
+      .filter(m => !m.decay_at || new Date(m.decay_at) > new Date());
 
-    // Update last_accessed_at for retrieved memories
-    for (const m of all) {
-      this.db.update("memory", m.id, { last_accessed_at: new Date().toISOString() });
-    }
+    // Sort by importance rank, then by recency
+    all.sort((a, b) => {
+      const rankDiff = IMPORTANCE_RANK[a.importance] - IMPORTANCE_RANK[b.importance];
+      if (rankDiff !== 0) return rankDiff;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
 
-    return all;
+    return all.slice(0, limit);
   }
 
   prune(): number {
-    // Remove expired entries (past decay_at)
-    const expired = this.db.query({
-      type: "memory",
-      where: "decay_at IS NOT NULL AND decay_at < datetime('now')",
-    });
-    for (const r of expired) {
-      this.db.delete("memory", r.id as number);
+    const all = this.db.query({ type: "memory", limit: 1000 });
+    let pruned = 0;
+    for (const r of all) {
+      const m = this.recordToMemory(r);
+      if (m.decay_at && new Date(m.decay_at) < new Date()) {
+        this.db.delete("memory", r.id as number);
+        pruned++;
+      }
     }
-    return expired.length;
+    return pruned;
   }
 
   listForAgent(agentSlug: string): Memory[] {
-    return this.db.query({
-      type: "memory",
-      where: `agent_slug = '${agentSlug}'`,
-      order: "created_at DESC",
-    }).map(r => this.rowToMemory(r));
+    return this.db.query({ type: "memory", order: "id DESC", limit: 100 })
+      .map(r => this.recordToMemory(r))
+      .filter(m => m.agent_slug === agentSlug);
   }
 
   listAll(limit = 50): Memory[] {
-    return this.db.query({
-      type: "memory",
-      order: "created_at DESC",
-      limit,
-    }).map(r => this.rowToMemory(r));
+    return this.db.query({ type: "memory", order: "id DESC", limit })
+      .map(r => this.recordToMemory(r));
   }
 
   formatForContext(memories: Memory[]): string {
@@ -97,17 +100,18 @@ export class MemoryService {
     return lines.join("\n");
   }
 
-  private rowToMemory(r: Record<string, unknown>): Memory {
+  private recordToMemory(r: Record<string, unknown>): Memory {
+    const data = JSON.parse((r.body as string) || "{}");
     return {
       id: r.id as number,
-      agent_slug: r.agent_slug as string,
+      agent_slug: data.agent_slug || "",
       title: (r.title as string) || "",
-      body: (r.body as string) || "",
-      memory_type: (r.memory_type as MemoryType) || "long-term",
-      importance: (r.importance as MemoryImportance) || "medium",
+      body: data.content || "",
+      memory_type: data.memory_type || "long-term",
+      importance: data.importance || "medium",
       created_at: r.created_at as string,
-      last_accessed_at: r.last_accessed_at as string,
-      decay_at: (r.decay_at as string) || null,
+      last_accessed_at: data.last_accessed_at || r.created_at as string,
+      decay_at: data.decay_at || null,
     };
   }
 }
