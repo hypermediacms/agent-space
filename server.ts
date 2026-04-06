@@ -23,6 +23,7 @@ import { MEMORY_DDL } from "./src/memory/schema";
 import { createAuthorityModule } from "./src/authority/module";
 import { ESCALATION_DDL, MUTATION_PROPOSAL_DDL } from "./src/authority/schema";
 import { createAttestationModule } from "./src/attestation/module";
+import { createCoordinationModule } from "./src/coordination/module";
 
 const PORT = parseInt(process.env.PORT || "4050");
 const SECRET = process.env.SECRET || "agent-space-secret-key";
@@ -64,6 +65,7 @@ const engine = new PrestoEngine({
     createMemoryModule(adapter),
     createAuthorityModule(adapter, SECRET),
     createAttestationModule(adapter, join(ROOT, "keys")),
+    createCoordinationModule(adapter),
   ],
 });
 
