@@ -13,6 +13,8 @@ import {
   createHealthModule,
 } from "../presto-ts/modules/index";
 import { join } from "node:path";
+import { createAgentIdentityModule } from "./src/identity/module";
+import { AGENT_DDL, PERSONA_DDL, SEED_PERSONA, SEED_AGENT } from "./src/identity/schema";
 
 const PORT = parseInt(process.env.PORT || "4050");
 const SECRET = process.env.SECRET || "agent-space-secret-key";
@@ -23,6 +25,12 @@ const DB = join(ROOT, "data/agent-space.db");
 
 // --- Database ---
 const adapter = new SqliteAdapter(DB);
+
+// Schema initialization
+adapter.exec(AGENT_DDL);
+adapter.exec(PERSONA_DDL);
+adapter.exec(SEED_PERSONA);
+adapter.exec(SEED_AGENT);
 
 // --- Engine ---
 const engine = new PrestoEngine({
@@ -37,6 +45,7 @@ const engine = new PrestoEngine({
     createCorsModule({ origins: ["*"] }),
     createSecurityModule({ hsts: false }),
     createHealthModule({ path: "/healthz" }),
+    createAgentIdentityModule(adapter),
   ],
 });
 

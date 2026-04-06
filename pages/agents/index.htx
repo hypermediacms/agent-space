@@ -1,0 +1,21 @@
+<section style="max-width:800px;margin:2rem auto;padding:0 1.5rem">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+    <h1>Agents</h1>
+  </div>
+
+  <htx:data type="agent" order="name ASC" as="agentList" />
+
+  <div style="display:grid;gap:1rem">
+    <htx:each items="agentList" as="agent">
+      <div class="ui-card">
+        <div class="ui-card-body" style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <h3 class="ui-card-title">{htx:agent.name}</h3>
+            <p class="ui-card-description">{htx:agent.role}</p>
+          </div>
+          <span class="ui-badge" style="text-transform:uppercase;font-size:0.7rem">{htx:agent.status}</span>
+        </div>
+      </div>
+    </htx:each>
+  </div>
+</section>
