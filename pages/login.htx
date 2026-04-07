@@ -51,9 +51,15 @@
         var data = await resp.json();
 
         if (data.success && data.token) {
-          // Redirect with the signed token in the URL — no cookies set.
-          // The representation will carry the token forward in every link.
-          window.location.href = "/?_t=" + encodeURIComponent(data.token);
+          // Set the token on the body for htmx header injection.
+          // Then navigate via htmx boost — the token travels in the
+          // Authorization header, never in the URL.
+          document.body.setAttribute("hx-headers", JSON.stringify({
+            "Authorization": "Bearer " + data.token
+          }));
+          htmx.process(document.body);
+          // Navigate to dashboard — htmx sends the header, no URL param
+          htmx.ajax("GET", "/", { target: "body", swap: "outerHTML" });
         } else {
           errEl.textContent = data.error || "Login failed";
           errEl.style.display = "block";
