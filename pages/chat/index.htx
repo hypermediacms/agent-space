@@ -1,0 +1,148 @@
+<htx:data type="agent" order="name ASC" as="agentList" />
+
+<div class="as-chat">
+  <div class="as-chat-messages" id="chat-messages">
+    <div class="as-chat-msg agent">
+      <div class="msg-sender">Assistant</div>
+      Ready. Select an agent and send a message to begin.
+    </div>
+  </div>
+  <div class="as-chat-input">
+    <select id="chat-agent" style="padding:0.5rem;border:1px solid var(--ui-border,#e5e5e5);border-radius:8px;font-size:0.85rem;background:#fff">
+      <htx:each items="agentList" as="a">
+        <option value="{htx:a.slug}">{htx:a.name}</option>
+      </htx:each>
+    </select>
+    <textarea id="chat-input" placeholder="Message..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}"></textarea>
+    <button onclick="sendChat()" id="chat-send">Send</button>
+  </div>
+</div>
+
+<htx:script>
+  var messages = document.getElementById("chat-messages");
+  var input = document.getElementById("chat-input");
+  var agentSelect = document.getElementById("chat-agent");
+  var sendBtn = document.getElementById("chat-send");
+  var sending = false;
+
+  // Auto-resize textarea
+  input.addEventListener("input", function() {
+    this.style.height = "auto";
+    this.style.height = Math.min(this.scrollHeight, 120) + "px";
+  });
+
+  function addMessage(sender, text, type) {
+    var msg = document.createElement("div");
+    msg.className = "as-chat-msg " + type;
+    var senderDiv = document.createElement("div");
+    senderDiv.className = "msg-sender";
+    senderDiv.textContent = sender;
+    msg.appendChild(senderDiv);
+    msg.appendChild(document.createTextNode(text));
+    messages.appendChild(msg);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function sendChat() {
+    if (sending) return;
+    var text = input.value.trim();
+    if (!text) return;
+
+    var agent = agentSelect.value;
+    var agentName = agentSelect.options[agentSelect.selectedIndex].text;
+
+    addMessage("You", text, "human");
+    input.value = "";
+    input.style.height = "auto";
+    sending = true;
+    sendBtn.disabled = true;
+
+    // Add thinking indicator
+    var thinking = document.createElement("div");
+    thinking.className = "as-chat-msg agent";
+    thinking.innerHTML = '<div class="msg-sender">' + agentName + '</div><em style="opacity:0.5">Thinking...</em>';
+    messages.appendChild(thinking);
+    messages.scrollTop = messages.scrollHeight;
+
+    // Delegate to the agent via the API
+    fetch("/api/channel/delegations/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": document.body.getAttribute("hx-headers") ?
+          JSON.parse(document.body.getAttribute("hx-headers"))["Authorization"] || "" : ""
+      },
+      body: JSON.stringify({
+        delegatorId: "human",
+        agentSlug: agent,
+        task: text,
+        maxBudget: 1.0,
+        timeout: 120
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      // Poll for completion
+      if (data.data && data.data.delegation) {
+        pollDelegation(data.data.delegation.id, agentName, thinking);
+      } else if (data.data && data.data.error) {
+        thinking.remove();
+        addMessage(agentName, "Error: " + data.data.error, "agent");
+        sending = false;
+        sendBtn.disabled = false;
+      } else {
+        thinking.remove();
+        addMessage(agentName, "Delegation created. Check delegations page for output.", "agent");
+        sending = false;
+        sendBtn.disabled = false;
+      }
+    })
+    .catch(function(err) {
+      thinking.remove();
+      addMessage("System", "Error: " + err.message, "agent");
+      sending = false;
+      sendBtn.disabled = false;
+    });
+  }
+
+  function pollDelegation(id, agentName, thinkingEl) {
+    var attempts = 0;
+    var maxAttempts = 60; // 2 minutes at 2s intervals
+
+    var poll = setInterval(function() {
+      attempts++;
+      fetch("/api/channel/delegations/get", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": document.body.getAttribute("hx-headers") ?
+            JSON.parse(document.body.getAttribute("hx-headers"))["Authorization"] || "" : ""
+        },
+        body: JSON.stringify({ id: id })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var d = data.data || data;
+        if (d.status === "completed") {
+          clearInterval(poll);
+          thinkingEl.remove();
+          addMessage(agentName, d.output || "(no output)", "agent");
+          sending = false;
+          sendBtn.disabled = false;
+        } else if (d.status === "failed") {
+          clearInterval(poll);
+          thinkingEl.remove();
+          addMessage(agentName, "Failed: " + (d.error || "unknown error"), "agent");
+          sending = false;
+          sendBtn.disabled = false;
+        } else if (attempts >= maxAttempts) {
+          clearInterval(poll);
+          thinkingEl.remove();
+          addMessage(agentName, "Timed out waiting for response.", "agent");
+          sending = false;
+          sendBtn.disabled = false;
+        }
+      });
+    }, 2000);
+  }
+</htx:script>

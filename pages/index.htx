@@ -1,8 +1,14 @@
-<section style="max-width:800px;margin:2rem auto;padding:0 1.5rem">
+<section class="as-section" style="padding-left:1rem;padding-right:1rem">
   <h1>Agent Space</h1>
-  <p style="color:var(--ui-text-muted);margin-bottom:2rem">Human-agent coordination — 7 constraints, 6 induced properties.</p>
+  <p style="color:var(--ui-text-muted);margin-bottom:1.5rem;font-size:0.9rem">Human-agent coordination.</p>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem">
+  <div class="as-grid">
+    <a href="/chat" class="ui-card" style="text-decoration:none;color:inherit">
+      <div class="ui-card-body">
+        <h3 class="ui-card-title">Chat</h3>
+        <p class="ui-card-description">Talk to your agents</p>
+      </div>
+    </a>
     <a href="/agents" class="ui-card" style="text-decoration:none;color:inherit">
       <div class="ui-card-body">
         <h3 class="ui-card-title">Agents</h3>
@@ -31,12 +37,6 @@
       <div class="ui-card-body">
         <h3 class="ui-card-title">Attestations</h3>
         <p class="ui-card-description">Cryptographic state verification</p>
-      </div>
-    </a>
-    <a href="/conversations" class="ui-card" style="text-decoration:none;color:inherit">
-      <div class="ui-card-body">
-        <h3 class="ui-card-title">Conversations</h3>
-        <p class="ui-card-description">Multi-agent coordination</p>
       </div>
     </a>
   </div>

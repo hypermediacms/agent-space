@@ -11,31 +11,31 @@
 <body class="as-body" hx-boost="true" hx-headers='{"Authorization":"Bearer {htx:authToken}"}'>
   <nav class="as-nav">
     <a href="/" class="as-nav-brand">Agent Space</a>
-    <div class="as-nav-links">
-      <a href="/agents">Agents</a>
-      <a href="/delegations">Delegations</a>
-      <a href="/memory">Memory</a>
-      <a href="/approvals">Approvals</a>
-      <a href="/attestations">Attestations</a>
-      <a href="/conversations">Conversations</a>
-    </div>
     <htx:auth>
-      <span style="font-size:0.75rem;color:var(--ui-text-muted)">{htx:authUser.name} ({htx:authUser.role})</span>
+      <span class="as-nav-user">{htx:authUser.name}</span>
     </htx:auth>
+    <button class="as-nav-toggle" onclick="document.getElementById('nav-links').classList.toggle('open')" aria-label="Menu">&#9776;</button>
+    <div id="nav-links" class="as-nav-links">
+      <a href="/" onclick="this.parentElement.classList.remove('open')">Dashboard</a>
+      <a href="/chat" onclick="this.parentElement.classList.remove('open')">Chat</a>
+      <a href="/agents" onclick="this.parentElement.classList.remove('open')">Agents</a>
+      <a href="/delegations" onclick="this.parentElement.classList.remove('open')">Delegations</a>
+      <a href="/memory" onclick="this.parentElement.classList.remove('open')">Memory</a>
+      <a href="/approvals" onclick="this.parentElement.classList.remove('open')">Approvals</a>
+      <a href="/attestations" onclick="this.parentElement.classList.remove('open')">Attestations</a>
+      <a href="/conversations" onclick="this.parentElement.classList.remove('open')">Conversations</a>
+    </div>
   </nav>
   <main id="main-content" class="as-main">
     __content__
   </main>
   <script src="/js/presto-signals.js"></script>
   <script>
-    // Preserve token from magic link entry — store for htmx header injection
     (function() {
       var params = new URLSearchParams(window.location.search);
       var token = params.get("_t");
       if (token) {
-        // Clean the URL (remove _t param) without navigation
-        var clean = window.location.pathname;
-        window.history.replaceState({}, "", clean);
+        window.history.replaceState({}, "", window.location.pathname);
       }
     })();
   </script>
