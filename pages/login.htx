@@ -18,7 +18,7 @@
 
     <form id="login-form" onsubmit="return handleLogin(event)">
       <div style="margin-bottom:1rem">
-        <label style="display:block;font-size:0.8rem;font-weight:500;margin-bottom:0.25rem">Username</label>
+        <label style="display:block;font-size:0.8rem;font-weight:500;margin-bottom:0.25rem">Email</label>
         <input type="text" name="username" required autofocus
           style="width:100%;padding:0.5rem;border:1px solid var(--ui-border);border-radius:var(--ui-radius,4px);font-size:0.9rem" />
       </div>
@@ -43,21 +43,31 @@
       var errEl = document.getElementById("login-error");
 
       try {
-        var resp = await fetch("/api/login", {
+        // Try better-auth first (email/password), fall back to native (/api/login)
+        var resp = await fetch("/api/auth/sign-in/email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: username, password: password }),
+        });
+
+        if (resp.ok) {
+          // better-auth sets a session cookie — just navigate
+          window.location.href = "/";
+          return;
+        }
+
+        // Fall back to native login
+        var resp2 = await fetch("/api/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username: username, password: password }),
         });
-        var data = await resp.json();
+        var data = await resp2.json();
 
         if (data.success && data.token) {
           if (data.authMode === "cookie") {
-            // Cookie was set by the server (httpOnly) — just navigate.
-            // The browser attaches the cookie automatically.
             window.location.href = "/";
           } else {
-            // Token mode: inject into hx-headers, navigate via htmx.
-            // The token travels in the Authorization header, never in URLs.
             document.body.setAttribute("hx-headers", JSON.stringify({
               "Authorization": "Bearer " + data.token
             }));
