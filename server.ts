@@ -25,6 +25,8 @@ import { ESCALATION_DDL, MUTATION_PROPOSAL_DDL } from "./src/authority/schema";
 import { createAttestationModule } from "./src/attestation/module";
 import { createCoordinationModule } from "./src/coordination/module";
 import { createTokenAuthModule } from "./src/auth/module";
+import { createCookieAuthModule, COOKIE_NAME } from "./src/auth/cookie-auth";
+import { createHybridAuthModule } from "./src/auth/hybrid-auth";
 import { TokenAuthService } from "./src/auth/token-auth";
 
 const PORT = parseInt(process.env.PORT || "4050");
@@ -47,8 +49,17 @@ adapter.exec(DELEGATION_DDL);
 adapter.exec(ESCALATION_DDL);
 adapter.exec(MUTATION_PROPOSAL_DDL);
 
-// --- Auth service (for login endpoint) ---
+// --- Auth ---
+const AUTH_MODE = process.env.AUTH_MODE || "token"; // token | cookie | hybrid
 const authService = new TokenAuthService(SECRET);
+
+// Module composition: the auth strategy is a module, not a flag.
+// Each strategy produces the same output: request.auth = { user: { id, name, role } }
+// The pipeline and templates are indifferent to which strategy is composed.
+const authModule =
+  AUTH_MODE === "cookie"  ? createCookieAuthModule(SECRET) :
+  AUTH_MODE === "hybrid"  ? createHybridAuthModule(SECRET) :
+  createTokenAuthModule(SECRET);
 
 // --- Engine ---
 const engine = new PrestoEngine({
@@ -63,7 +74,7 @@ const engine = new PrestoEngine({
     createCorsModule({ origins: ["*"] }),
     createSecurityModule({ hsts: false }),
     createHealthModule({ path: "/healthz" }),
-    createTokenAuthModule(SECRET),
+    authModule,
     createAgentIdentityModule(adapter),
     createDelegationModule(adapter),
     createMemoryModule(adapter),
@@ -116,14 +127,21 @@ Bun.serve({
     if (url.pathname === "/api/login" && req.method === "POST") {
       try {
         const body = await req.json() as { username?: string; password?: string };
-        // Simple auth — in production, check against user table with bcrypt
         if (body.username === "admin" && body.password === "presto") {
           const token = await authService.issueToken({
             userId: "admin",
             username: "admin",
             role: "admin",
           });
-          return Response.json({ success: true, token });
+
+          const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+          // Cookie mode: set httpOnly cookie alongside the JSON response
+          if (AUTH_MODE === "cookie" || AUTH_MODE === "hybrid") {
+            headers["Set-Cookie"] = `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=3600`;
+          }
+
+          return new Response(JSON.stringify({ success: true, token, authMode: AUTH_MODE }), { headers });
         }
         return Response.json({ error: "Invalid credentials" }, { status: 401 });
       } catch {
