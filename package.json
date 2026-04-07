@@ -6,5 +6,8 @@
   "scripts": {
     "start": "bun server.ts",
     "test": "bun test"
+  },
+  "dependencies": {
+    "better-auth": "^1.6.0"
   }
 }

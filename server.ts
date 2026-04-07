@@ -28,6 +28,9 @@ import { createTokenAuthModule } from "./src/auth/module";
 import { createCookieAuthModule, COOKIE_NAME } from "./src/auth/cookie-auth";
 import { createHybridAuthModule } from "./src/auth/hybrid-auth";
 import { TokenAuthService } from "./src/auth/token-auth";
+import { createAdapterAuthModule, preResolveSession } from "./src/auth/adapter-auth";
+import { createBetterAuthAdapter } from "./src/auth/adapters/better-auth";
+import type { AuthAdapter } from "./src/auth/adapter";
 
 const PORT = parseInt(process.env.PORT || "4050");
 const SECRET = process.env.SECRET || "agent-space-secret-key";
@@ -57,17 +60,58 @@ const authService = new TokenAuthService(SECRET);
 // Each strategy produces the same output: request.auth = { user: { id, name, role } }
 // The pipeline and templates are indifferent to which strategy is composed.
 //
-// For third-party libraries (better-auth, lucia, etc.), use the adapter pattern:
-//   import { createAdapterAuthModule } from "./src/auth/adapter-auth";
-//   import { createBetterAuthAdapter } from "./src/auth/adapters/better-auth";
-//   const auth = betterAuth({ ... });
-//   const authModule = createAdapterAuthModule(createBetterAuthAdapter(auth));
-//
-// The adapter wraps the library. The module wraps the adapter. The pipeline is indifferent.
-const authModule =
-  AUTH_MODE === "cookie"  ? createCookieAuthModule(SECRET) :
-  AUTH_MODE === "hybrid"  ? createHybridAuthModule(SECRET) :
-  createTokenAuthModule(SECRET);
+// Auth adapter for third-party libraries (resolved below if needed)
+let authAdapter: AuthAdapter | null = null;
+
+let authModule;
+if (AUTH_MODE === "better-auth") {
+  // better-auth: full-featured auth with OAuth, email/password, sessions
+  const { betterAuth } = require("better-auth");
+  const { Database } = require("bun:sqlite");
+  const authDb = new Database(join(ROOT, "data/auth.db"));
+
+  // Create better-auth tables
+  authDb.run(`CREATE TABLE IF NOT EXISTS "user" (
+    id TEXT PRIMARY KEY, name TEXT, email TEXT UNIQUE NOT NULL,
+    "emailVerified" INTEGER DEFAULT 0, image TEXT,
+    "createdAt" TEXT DEFAULT (datetime('now')), "updatedAt" TEXT DEFAULT (datetime('now'))
+  )`);
+  authDb.run(`CREATE TABLE IF NOT EXISTS "session" (
+    id TEXT PRIMARY KEY, token TEXT UNIQUE NOT NULL, "userId" TEXT NOT NULL,
+    "expiresAt" TEXT NOT NULL, "ipAddress" TEXT, "userAgent" TEXT,
+    "createdAt" TEXT DEFAULT (datetime('now')), "updatedAt" TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY ("userId") REFERENCES "user"(id)
+  )`);
+  authDb.run(`CREATE TABLE IF NOT EXISTS "account" (
+    id TEXT PRIMARY KEY, "userId" TEXT NOT NULL, "accountId" TEXT NOT NULL,
+    "providerId" TEXT NOT NULL, "accessToken" TEXT, "refreshToken" TEXT,
+    "accessTokenExpiresAt" TEXT, "refreshTokenExpiresAt" TEXT,
+    scope TEXT, "idToken" TEXT, password TEXT,
+    "createdAt" TEXT DEFAULT (datetime('now')), "updatedAt" TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY ("userId") REFERENCES "user"(id)
+  )`);
+  authDb.run(`CREATE TABLE IF NOT EXISTS "verification" (
+    id TEXT PRIMARY KEY, identifier TEXT NOT NULL, value TEXT NOT NULL,
+    "expiresAt" TEXT NOT NULL, "createdAt" TEXT DEFAULT (datetime('now')),
+    "updatedAt" TEXT DEFAULT (datetime('now'))
+  )`);
+
+  const auth = betterAuth({
+    database: authDb,
+    basePath: "/api/auth",
+    baseURL: `http://localhost:${PORT}`,
+    secret: SECRET.padEnd(32, SECRET), // Ensure 32+ chars
+    emailAndPassword: { enabled: true },
+  });
+  authAdapter = createBetterAuthAdapter(auth);
+  authModule = createAdapterAuthModule(authAdapter);
+} else if (AUTH_MODE === "cookie") {
+  authModule = createCookieAuthModule(SECRET);
+} else if (AUTH_MODE === "hybrid") {
+  authModule = createHybridAuthModule(SECRET);
+} else {
+  authModule = createTokenAuthModule(SECRET);
+}
 
 // --- Engine ---
 const engine = new PrestoEngine({
@@ -131,6 +175,12 @@ Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
 
+    // better-auth: route /api/auth/* to the library before the engine
+    if (authAdapter) {
+      const authResponse = await authAdapter.handleAuthRoute(req);
+      if (authResponse) return authResponse;
+    }
+
     // Login POST — handle outside engine (needs async token signing)
     if (url.pathname === "/api/login" && req.method === "POST") {
       try {
@@ -158,6 +208,12 @@ Bun.serve({
     }
 
     const htxReq = await parseRequest(req);
+
+    // Pre-resolve session for adapter-based auth (async → stash on request)
+    if (authAdapter) {
+      await preResolveSession(authAdapter, htxReq);
+    }
+
     const resp = await engine.handle(htxReq);
     return new Response(resp.body, {
       status: resp.status,

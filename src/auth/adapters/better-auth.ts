@@ -1,22 +1,14 @@
 // better-auth Adapter
 //
-// Wraps the better-auth library into the AuthAdapter interface.
+// Wraps better-auth into the AuthAdapter interface.
 // better-auth handles OAuth, email/password, magic links, sessions.
 // This adapter translates its output into the system's identity contract.
-//
-// Usage:
-//   import { betterAuth } from "better-auth";
-//   import { createBetterAuthAdapter } from "./adapters/better-auth";
-//
-//   const auth = betterAuth({ database, emailAndPassword: { enabled: true } });
-//   const adapter = createBetterAuthAdapter(auth);
-//   const authModule = createAdapterAuthModule(adapter);
 
-import type { AuthAdapter, AuthUser, AuthSession } from "../adapter";
+import type { AuthAdapter, AuthSession } from "../adapter";
 import type { HtxRequest } from "../../../../presto-ts/src/types";
 
-// better-auth types (from the library)
-interface BetterAuth {
+// The Auth type from better-auth — we use the runtime shape, not the generic
+interface BetterAuthInstance {
   handler: (request: Request) => Promise<Response>;
   api: {
     getSession: (opts: { headers: Headers }) => Promise<{
@@ -26,16 +18,17 @@ interface BetterAuth {
   };
 }
 
-export function createBetterAuthAdapter(auth: BetterAuth): AuthAdapter {
+export function createBetterAuthAdapter(auth: BetterAuthInstance): AuthAdapter {
   return {
     async resolveSession(request: HtxRequest): Promise<AuthSession | null> {
-      // Build a Headers object from the request
       const headers = new Headers();
       for (const [k, v] of Object.entries(request.headers)) {
         if (v) headers.set(k, v);
       }
-      // Include cookies as a header (better-auth reads session cookies)
-      const cookieStr = Object.entries(request.cookies).map(([k, v]) => `${k}=${v}`).join("; ");
+      // Pass cookies through — better-auth reads its session cookie
+      const cookieStr = Object.entries(request.cookies)
+        .map(([k, v]) => `${k}=${v}`)
+        .join("; ");
       if (cookieStr) headers.set("cookie", cookieStr);
 
       try {
@@ -48,7 +41,7 @@ export function createBetterAuthAdapter(auth: BetterAuth): AuthAdapter {
           user: {
             userId: result.user.id,
             username: result.user.name || result.user.email,
-            role: result.user.role || "user",
+            role: (result.user as any).role || "user",
             email: result.user.email,
             image: result.user.image,
           },
@@ -60,15 +53,13 @@ export function createBetterAuthAdapter(auth: BetterAuth): AuthAdapter {
 
     async handleAuthRoute(request: Request): Promise<Response | null> {
       const url = new URL(request.url);
-      // better-auth handles all /api/auth/* routes
       if (!url.pathname.startsWith("/api/auth")) return null;
       return auth.handler(request);
     },
 
-    async issueSession(user: AuthUser): Promise<{ session: AuthSession; headers?: Record<string, string> }> {
-      // better-auth manages session issuance internally via its handler.
-      // This method is a passthrough — the login flow goes through
-      // /api/auth/sign-in, which better-auth handles directly.
+    async issueSession(user) {
+      // better-auth manages session issuance via its handler endpoints.
+      // Sign-in goes through /api/auth/sign-in/email, which sets cookies.
       return {
         session: {
           token: "",
@@ -78,7 +69,7 @@ export function createBetterAuthAdapter(auth: BetterAuth): AuthAdapter {
       };
     },
 
-    async revokeSession(token: string): Promise<void> {
+    async revokeSession(): Promise<void> {
       // better-auth handles revocation via /api/auth/sign-out
     },
   };
