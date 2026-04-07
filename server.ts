@@ -101,7 +101,7 @@ if (AUTH_MODE === "better-auth") {
     basePath: "/api/auth",
     baseURL: `http://localhost:${PORT}`,
     secret: SECRET.padEnd(32, SECRET), // Ensure 32+ chars
-    emailAndPassword: { enabled: true },
+    emailAndPassword: { enabled: true, minPasswordLength: 6 },
   });
   authAdapter = createBetterAuthAdapter(auth);
   authModule = createAdapterAuthModule(authAdapter);
