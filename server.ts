@@ -56,6 +56,14 @@ const authService = new TokenAuthService(SECRET);
 // Module composition: the auth strategy is a module, not a flag.
 // Each strategy produces the same output: request.auth = { user: { id, name, role } }
 // The pipeline and templates are indifferent to which strategy is composed.
+//
+// For third-party libraries (better-auth, lucia, etc.), use the adapter pattern:
+//   import { createAdapterAuthModule } from "./src/auth/adapter-auth";
+//   import { createBetterAuthAdapter } from "./src/auth/adapters/better-auth";
+//   const auth = betterAuth({ ... });
+//   const authModule = createAdapterAuthModule(createBetterAuthAdapter(auth));
+//
+// The adapter wraps the library. The module wraps the adapter. The pipeline is indifferent.
 const authModule =
   AUTH_MODE === "cookie"  ? createCookieAuthModule(SECRET) :
   AUTH_MODE === "hybrid"  ? createHybridAuthModule(SECRET) :
