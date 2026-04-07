@@ -39,8 +39,9 @@
 }
 
 /* Main content */
-.as-main { padding: 1rem; }
+.as-main { padding: 1rem; overflow: hidden; }
 @media (min-width: 768px) { .as-main { padding: 1.5rem; } }
+.as-main:has(.as-chat) { padding: 0; overflow: hidden; }
 
 /* Cards grid — single column mobile, multi desktop */
 .as-grid {
@@ -50,9 +51,10 @@
 @media (min-width: 480px) { .as-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 768px) { .as-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; } }
 
-/* Chat interface */
+/* Chat interface — full viewport */
 .as-chat {
-  display: flex; flex-direction: column; height: calc(100vh - 48px);
+  display: flex; flex-direction: column;
+  height: calc(100dvh - 48px); /* dvh handles mobile viewport correctly */
   max-width: 800px; margin: 0 auto;
 }
 .as-chat-messages {
@@ -76,9 +78,12 @@
   opacity: 0.7;
 }
 .as-chat-input {
-  display: flex; gap: 0.5rem; padding: 0.75rem 1rem;
+  display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.75rem 1rem;
   border-top: 1px solid var(--ui-border, #e5e5e5); background: #fff;
+  flex-shrink: 0;
 }
+.as-chat-input select { width: 100%; }
+@media (min-width: 480px) { .as-chat-input select { width: auto; } .as-chat-input { flex-wrap: nowrap; } }
 .as-chat-input textarea {
   flex: 1; padding: 0.5rem 0.75rem; font-size: 0.9rem; font-family: inherit;
   border: 1px solid var(--ui-border, #e5e5e5); border-radius: 8px;
